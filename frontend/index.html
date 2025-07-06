@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Canary Flow</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .test-section {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    button {
+      margin: 5px;
+      padding: 10px 15px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    pre {
+      background-color: #f8f9fa;
+      padding: 10px;
+      border-radius: 3px;
+      white-space: pre-wrap;
+    }
+    .version-v1 { color: #28a745; font-weight: bold; }
+    .version-v2 { color: #dc3545; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Canary Flow 灰度发布演示</h1>
+  
+  <div class="test-section">
+    <h3>灰度规则测试</h3>
+    <p>基于请求头 <code>X-App-Version</code> 的简单灰度规则：</p>
+    <ul>
+      <li><strong>X-App-Version: v2</strong> → 路由到 Backend v2</li>
+      <li><strong>无请求头或其他值</strong> → 路由到 Backend v1</li>
+    </ul>
+  </div>
+
+  <div class="test-section">
+    <h3>测试按钮</h3>
+    <button onclick="fetchData()">默认请求 (v1)</button>
+    <button onclick="fetchDataWithVersion('v2')">使用 v2 版本</button>
+    <button onclick="fetchDataWithVersion('v1')">强制使用 v1</button>
+  </div>
+
+  <pre id="output">点击按钮开始测试...</pre>
+
+  <script>
+    async function fetchData() {
+      try {
+        const res = await fetch("http://localhost:8000/admin");
+        const data = await res.json();
+        displayResult(data, "默认请求（无请求头）");
+      } catch (error) {
+        document.getElementById("output").innerText = "错误: " + error.message;
+      }
+    }
+
+    async function fetchDataWithVersion(version) {
+      try {
+        const res = await fetch("http://localhost:8000/admin", {
+          headers: {
+            'X-App-Version': version
+          }
+        });
+        const data = await res.json();
+        displayResult(data, `X-App-Version: ${version}`);
+      } catch (error) {
+        document.getElementById("output").innerText = "错误: " + error.message;
+      }
+    }
+
+    function displayResult(data, requestInfo = "") {
+      const output = document.getElementById("output");
+      const versionClass = data.version === 'v1' ? 'version-v1' : 'version-v2';
+      const timestamp = new Date().toLocaleTimeString();
+      
+      output.innerHTML = `
+请求信息: ${requestInfo}
+时间: ${timestamp}
+版本: <span class="${versionClass}">${data.version}</span>
+消息: ${data.message}
+      `;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+name: 'canary-flow-app'
+
+services:
+  kong:
+    image: kong:3.9.1
+    container_name: kong-gateway
+    restart: always
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /usr/local/kong/declarative/kong.yml
+      # kong proxy
+      KONG_PROXY_LISTEN: 0.0.0.0:8000
+      KONG_PROXY_LISTEN_SSL: 0.0.0.0:8443
+      # kong admin
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001, 0.0.0.0:8444 ssl
+      # kong manager
+      KONG_ADMIN_GUI_LISTEN: 0.0.0.0:8002, 0.0.0.0:8445 ssl
+      # kong logs
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+    ports:
+      - "8000:8000" # Proxy
+      - "8443:8443" # Proxy SSL
+      - "8001:8001" # Admin API
+      - "8444:8444" # Admin API SSL
+      - "8002:8002" # Kong Manager
+      - "8445:8445" # Kong Manager SSL
+    volumes:
+      - ./kong/kong.yml:/usr/local/kong/declarative/kong.yml
+      #- ./kong.yml:/etc/kong/kong.yml
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD-SHELL", "kong health"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build: ./frontend
+    image: registry.cn-shenzhen.aliyuncs.com/cnmirror/canary-flow-frontend:v1.0
+    container_name: canary-frontend
+    ports:
+      - "8080:80"
+    networks:
+      - app-net
+
+  backend-v1:
+    build: ./backend-v1
+    image: registry.cn-shenzhen.aliyuncs.com/cnmirror/canary-flow-backend-v1:v1.0
+    container_name: canary-backend-v1
+    ports:
+      - "3001:3000"
+    networks:
+      - app-net
+
+  backend-v2:
+    build: ./backend-v2
+    image: registry.cn-shenzhen.aliyuncs.com/cnmirror/canary-flow-backend-v2:v1.0
+    container_name: canary-backend-v2
+    ports:
+      - "3002:3000"
+    networks:
+      - app-net
+
+networks:
+  app-net:
+    driver: bridge
